@@ -240,7 +240,7 @@
   <div class="stats"><div class="stat"><strong id="spellsTotal">513</strong><span>Indexed spells</span></div><div class="stat"><strong id="spellsFiltered">—</strong><span>Matching spells</span></div><div class="stat"><strong>0–9</strong><span>Spell levels</span></div><div class="stat"><strong>2024+</strong><span>Compatible books</span></div></div>
   <div class="panel"><div class="filters">
     <div class="control search"><label for="spellSearch">Search spell</label><input id="spellSearch" placeholder="Name, school, description…" autocomplete="off"></div>
-    <div class="control"><label for="spellClass">Class</label><select id="spellClass"><option value="all">All classes</option><option value="unverified">Class not verified</option><option>Bard</option><option>Cleric</option><option>Druid</option><option>Paladin</option><option>Ranger</option><option>Sorcerer</option><option>Warlock</option><option>Wizard</option></select></div>
+    <div class="control"><label for="spellClass">Class</label><select id="spellClass"><option value="all">All classes</option><option value="unverified">Class not verified</option></select></div>
     <div class="control"><label for="spellSource">Sourcebook</label><select id="spellSource"><option value="all">All books</option></select></div>
     <div class="control"><label for="spellLevel">Spell level</label><select id="spellLevel"><option value="all">All levels</option><option value="0">Cantrip</option></select></div>
     <div class="control"><label for="spellSchool">School</label><select id="spellSchool"><option value="all">All schools</option><option>Abjuration</option><option>Conjuration</option><option>Divination</option><option>Enchantment</option><option>Evocation</option><option>Illusion</option><option>Necromancy</option><option>Transmutation</option><option value="unverified">School not verified</option></select></div>
@@ -877,6 +877,7 @@ const roleOfSpell=d=>{
  if(combat&&outside)return 'Both';if(outside)return 'Outside combat';return 'Combat';
 };
 const normalisedName=n=>String(n).toLowerCase().replace(/[^a-z0-9]/g,'');
+function populateSpellClassesAfterMetadata(){const s=$('spellClass'),current=s.value;const names=[...new Set(spellData.flatMap(d=>d.classes||[]))].sort();s.querySelectorAll('option:not([value="all"]):not([value="unverified"])').forEach(o=>o.remove());names.forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;s.appendChild(o)});s.value=names.includes(current)||current==='unverified'?current:'all';}
 async function loadSpellMetadata(){
  if(spellMetadataReady||spellMetadataLoading)return;
  spellMetadataLoading=true;
@@ -894,6 +895,7 @@ async function loadSpellMetadata(){
    else{const obj={name:s.name,level:s.level,school:s.school?.name||'',classes:(s.classes||[]).map(x=>x.name),casting_time:s.casting_time||'',range:s.range||'',duration:s.duration||'',concentration:Boolean(s.concentration),ritual:Boolean(s.ritual),components:(s.components||[]).join(', '),index:s.index||'',source:'2024 SRD 5.2.1'};spellData.push(obj);byName.set(key,obj);}
   }
   spellMetadataReady=true;
+  populateSpellClassesAfterMetadata();
   $('spellClass').disabled=false;$('spellSchool').disabled=false;
   spellMetadataMessage='2024 SRD metadata loaded. Select a spell to see its details.';
  }catch(e){
@@ -926,6 +928,10 @@ function renderSourceFilter(kind,source,items,render){
 function populateCompendiumSources(){
  const sourceOptions=(id,vals)=>{const el=$(id);[...new Set(vals)].sort().forEach(v=>{const opt=document.createElement('option');opt.value=v;opt.textContent=v;el.appendChild(opt);});};
  sourceOptions('spellSource',spellData.map(x=>x.source));sourceOptions('featSource',ALL_2024_FEATS.map(x=>x.source));
+ const classSelect=$('spellClass'),prior=classSelect.value;
+ classSelect.querySelectorAll('option:not([value="all"]):not([value="unverified"])').forEach(o=>o.remove());
+ [...new Set(spellData.flatMap(s=>s.classes||[]))].sort().forEach(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;classSelect.appendChild(option);});
+ classSelect.value=[...classSelect.options].some(x=>x.value===prior)?prior:'all';
 }
 
 const SPELL_SCHOOL_STYLES={
