@@ -919,6 +919,7 @@ function shortAtlasSource(s){return s==="2024 Player’s Handbook"?"2024 PHB":s=
 function renderSourceFilter(kind,source,items,render){
  const id=kind==="spell"?"spellSourceNav":"featSourceNav",select=$(kind+"Source"),el=$(id);if(!el)return;
  const names=[...new Set(items.map(x=>x.source))].sort((a,b)=>items.filter(x=>x.source===b).length-items.filter(x=>x.source===a).length||a.localeCompare(b));
+ names.forEach(name=>{if(![...select.options].some(o=>o.value===name)){const option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);}});
  el.innerHTML='<div class="source-caption">Browse by sourcebook</div>'+['all',...names].map(name=>{
   const count=name==="all"?items.length:items.filter(x=>x.source===name).length;
   return '<button type="button" class="source-filter-chip '+(source===name?'on':'')+'" data-source="'+E(name)+'" aria-pressed="'+(source===name)+'">'+E(name==="all"?"All sources":shortAtlasSource(name))+' <span>'+count+'</span></button>';
