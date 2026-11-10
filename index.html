@@ -981,7 +981,7 @@ function spellAdvancedMatch(s){
  const desc=String(s.description||'');
  if(damage!=='all'&&(damage==='undocumented'?!!desc:!new RegExp('\\b'+damage+'\\s+damage\\b','i').test(desc)))return false;
  if(save!=='all'&&(save==='undocumented'?!!desc:!new RegExp('\\b'+save+'\\s+saving throw\\b','i').test(desc)))return false;
- const hasAttack=/\\bspell attack(?: roll)?\\b/i.test(desc),hasSave=/\\bsaving throw\\b/i.test(desc);
+ const hasAttack=/\bspell attack(?: roll)?\b/i.test(desc),hasSave=/\bsaving throw\b/i.test(desc);
  if(attack!=='all'&&(attack==='undocumented'?!!desc:attack==='spell-attack'?!hasAttack:attack==='saving-throw'?!hasSave:!desc||hasAttack||hasSave))return false;
  if(condition!=='all'&&(condition==='undocumented'?!!desc:!new RegExp('\\b'+condition+'\\b','i').test(desc)))return false;
  return true;
