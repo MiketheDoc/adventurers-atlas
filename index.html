@@ -225,7 +225,7 @@
 <div class="control"><label for="speciesSource">Source</label><select id="speciesSource"><option value="all">All indexed sourcebooks</option></select></div>
 
 <div class="control"><label for="speciesEdition">Rules version</label><select id="speciesEdition"><option value="all">All versions</option><option value="2024">Published for 2024</option><option value="2024-supported">2024-supported adaptations</option><option value="5e-supported">Earlier 5e material</option></select></div>
-<div class="control"><label for="speciesPublisher">Publisher</label><select id="speciesPublisher"><option value="all">Official and partnered</option><option value="official">Official D&D</option><option value="partnered">Partnered content</option></select></div>
+<div class="control"><label for="speciesAdaptation">Species rulebook type</label><select id="speciesAdaptation"><option value="all">Original and adapted species</option><option value="adapted">Adapted species with inherited traits</option><option value="original">Original species profiles</option></select></div><div class="control"><label for="speciesPublisher">Publisher</label><select id="speciesPublisher"><option value="all">Official and partnered</option><option value="official">Official D&D</option><option value="partnered">Partnered content</option></select></div>
 <div class="control"><label for="speciesCoverage">Mechanical coverage</label><select id="speciesCoverage"><option value="all">All documentation levels</option><option value="full">Detailed original mechanics</option><option value="index">Trait list and overview only</option></select></div>
 <div class="control"><label for="speciesSort">Sort</label><select id="speciesSort"><option value="name">A–Z</option><option value="source">Source, then name</option><option value="speed">Walking speed</option><option value="coverage">Detailed first</option></select></div></div>
 <details class="advanced-filter-panel"><summary>Advanced species filters <span>Size · Darkvision · Speed · traits · lineage choices</span></summary><div class="filters">
@@ -983,7 +983,7 @@ function spellSubgroup(label,spells,school){
 function atlasSourceFamily(s){return s==="D&D Beyond Drops"?"drops":s==="2024 Player’s Handbook"?"core":"supplement";}
 const SPELL_ADV_IDS=['spellSearch','spellClass','spellSource','spellSourceFamily','spellLevel','spellSchool','spellConcentration','spellRitual','spellCoverage','spellFocus','spellCastingTime','spellRangeBand','spellDurationBand','spellComponent','spellDamageType','spellSaveAbility','spellAttackMode','spellCondition'];
 const FEAT_ADV_IDS=['featSearch','featTier','featCategory','featSource','featSourceFamily','featAbility','featPrerequisite','featTheme','featCoverage'];
-const SPECIES_ADV_IDS=['speciesSearch','speciesSource','speciesEdition','speciesPublisher','speciesCoverage','speciesSize','speciesVision','speciesSpeed','speciesTrait','speciesUnlock','speciesChoices'];
+const SPECIES_ADV_IDS=['speciesSearch','speciesSource','speciesEdition','speciesAdaptation','speciesPublisher','speciesCoverage','speciesSize','speciesVision','speciesSpeed','speciesTrait','speciesUnlock','speciesChoices'];
 function filterStatus(prefix,ids){const n=ids.filter(id=>$(id)&&$(id).value!==''&&$(id).value!=='all').length;$(prefix+'ActiveFilters').textContent=n?n+' active filter'+(n===1?'':'s')+' · Combine with sourcebook chips':'No filters applied · All indexed entries';}
 function clearAdvanced(prefix,ids,draw){ids.forEach(id=>{const e=$(id);if(e)e.value=e.tagName==='INPUT'?'':'all';});if(prefix==='spell'){activeSpell='';$('spellDetail').innerHTML='<h3>Select a spell</h3><p>Choose a spell card for details.</p>'}if(prefix==='feat'){activeFeat='';$('featDetail').innerHTML='<h3>Select a feat</h3><p>Choose a feat for details.</p>'}if(prefix==='species')activeSpecies='';draw();}
 function spellCastCategory(s){const v=String(s.casting_time||'').toLowerCase().replace(/\s+/g,'');if(!v)return 'unknown';if(v.includes('bonusaction'))return 'bonus';if(v.includes('reaction'))return 'reaction';if(v.startsWith('action'))return 'action';return 'long';}
@@ -1020,10 +1020,11 @@ function featAdvancedMatch(f){
 function speciesTraitMatch(s,k){const txt=[s.flavour,s.role,...s.traits.flat(),...s.choices.flat()].join(' ').toLowerCase();const re={resistance:/resistan|resilien|resist\b/,flight:/flight|fly|flying|wings?\b/,magic:/cantrip|spell|magical|magic\b/,healing:/heal|hit points|hit dice/,telepathy:/telepath|mind link/,shape:/shape.?shift|transform|change (your|its) appearance/,mobility:/teleport|speed|dash|move|movement|climb|swim|flight|fly/,skills:/skill|proficien|expertise/};return re[k].test(txt);}
 function speciesAdvancedMatch(s){
  const source=$('speciesSource').value,size=$('speciesSize').value,vision=$('speciesVision').value,speed=$('speciesSpeed').value,trait=$('speciesTrait').value,unlock=$('speciesUnlock').value,choice=$('speciesChoices').value;
- const edition=$('speciesEdition').value,publisher=$('speciesPublisher').value,coverage=$('speciesCoverage').value;
+ const edition=$('speciesEdition').value,publisher=$('speciesPublisher').value,coverage=$('speciesCoverage').value,adaptation=$('speciesAdaptation').value;
  if(source!=='all'&&s.source!==source)return false;
  const era=s.era||(s.group==='core'||s.group==='eberron'?'2024':'5e-supported');
  if(edition!=='all'&&era!==edition)return false;
+  if(adaptation!=='all'&&(adaptation==='adapted')!==!!s.adaptedFrom)return false;
  const official=s.sourceType?s.sourceType==='official':s.group==='core'||s.group==='eberron';
  if(publisher!=='all'&&(publisher==='official')!==official)return false;
  if(coverage!=='all'&&(coverage==='index')!==Boolean(s.documentation))return false;
@@ -1139,12 +1140,12 @@ function renderSpecies(){
   $('speciesCount').textContent=data.length+' of '+SPECIES_2024.length+' species · '+Math.min(data.length,speciesLimit)+' shown';renderSpeciesSources(source);filterStatus('species',SPECIES_ADV_IDS);const visible=data.slice(0,speciesLimit);
   $('speciesResults').innerHTML=visible.map(x=>{
     const version=x.era==='5e-supported'?'Earlier 5e':x.era==='2024-supported'?'2024-supported':'2024';
-    const coverage=x.documentation?'Trait reference':'Detailed summary';
+    const coverage=x.documentation?'Trait reference':'Detailed summary';const adapted=x.adaptedFrom?' · Adapted':' · Original';
     const attributes=[x.size,x.speed].filter(v=>v&&v!=='Not documented').map(v=>'<span>'+speciesEsc(v)+'</span>').join('');
     const vision=x.darkvision&&x.darkvision.startsWith('Present')?'<span>Darkvision</span>':'';
     return '<button type="button" class="species-card'+(x.name===activeSpecies?' active':'')+'" data-species="'+speciesEsc(x.name)+'" aria-pressed="'+(x.name===activeSpecies)+'">'+
       '<span class="species-name">'+speciesEsc(x.name)+'</span><span class="species-subtitle">'+speciesEsc(x.source)+'</span>'+
-      '<span class="species-era">'+version+' · '+coverage+'</span>'+
+      '<span class="species-era">'+version+adapted+' · '+coverage+'</span>'+
       '<p style="font-size:12px;line-height:1.5;margin:0">'+speciesEsc(x.flavour)+'</p>'+
       '<span class="species-tags">'+attributes+vision+'<span>'+x.traits.length+' traits</span></span></button>';
   }).join('')||'<p class="muted">No species match these filters. Clear filters to broaden your search.</p>';
@@ -1154,12 +1155,12 @@ function renderSpecies(){
   if(!activeSpecies||!data.some(x=>x.name===activeSpecies)){$('speciesDetail').innerHTML='<h3>Choose a species</h3><p class="muted">Select a species card to read its traits, lineage options and level unlocks. No species is preselected.</p>';return;}
   const d=SPECIES_2024.find(x=>x.name===activeSpecies);if(!d)return;
   const core=d.group==='core';
-  $('speciesDetail').innerHTML='<div class="kicker">'+speciesEsc(d.source)+(d.era==='5e-supported'?' · Earlier 5e':d.era==='2024-supported'?' · 2024 adapted':' · 2024')+'</div><h3>'+speciesEsc(d.name)+'</h3><p>'+speciesEsc(d.flavour)+'</p><div class="statline"><span>'+speciesEsc(d.type||'Creature type not verified')+'</span><span>'+speciesEsc(d.size)+'</span><span>'+speciesEsc(d.speed)+'</span><span>Darkvision: '+speciesEsc(d.darkvision)+'</span></div><h4>What this gives your character</h4><p>'+speciesEsc(d.role)+'</p><h4>Species features and levels</h4>'+(d.documentation?'<p class="source-note">'+speciesEsc(d.documentation)+' Exact levels, uses and numerical effects are not yet independently verified. This is a trait index, not a complete rules entry.</p>':'')+d.traits.map(t=>'<div class="species-trait"><strong>'+speciesEsc(t[0])+'</strong><span class="unlock">'+(Number.isFinite(t[1])?'Level '+t[1]+'+':'Level unverified')+'</span><p>'+speciesEsc(t[2])+'</p></div>').join('')+(d.choices.length?'<h4>Lineages, options and practical choices</h4>'+d.choices.map(t=>'<div class="species-trait"><strong>'+speciesEsc(t[0])+'</strong><p>'+speciesEsc(t[1])+'</p></div>').join(''):'')+(!core?'<p class="source-note">Supplement features are summarised in independent wording; uncommon exceptions and detailed choices may be condensed.</p>':'<p class="source-note">Original 2024 mechanical summary. Check specific rule interactions with your table’s 2024 wording.</p>')+'<div class="footlinks"><a href="'+speciesEsc(d.url)+'" target="_blank" rel="noopener">Published source information ↗</a></div>';
+  $('speciesDetail').innerHTML='<div class="kicker">'+speciesEsc(d.source)+(d.era==='5e-supported'?' · Earlier 5e':d.era==='2024-supported'?' · 2024 adapted':' · 2024')+'</div><h3>'+speciesEsc(d.name)+'</h3><p>'+speciesEsc(d.flavour)+'</p><div class="statline"><span>'+speciesEsc(d.type||'Creature type not verified')+'</span><span>'+speciesEsc(d.size)+'</span><span>'+speciesEsc(d.speed)+'</span><span>Darkvision: '+speciesEsc(d.darkvision)+'</span></div><h4>What this gives your character</h4>'+(d.adaptedFrom?'<p class="source-note">This species adapts the traits of '+speciesEsc(d.adaptedFrom)+'. Its published differences and options are listed below.</p>':'')+'<p>'+speciesEsc(d.role)+'</p><h4>Species features and levels</h4>'+(d.documentation?'<p class="source-note">'+speciesEsc(d.documentation)+' Exact levels, uses and numerical effects are not yet independently verified. This is a trait index, not a complete rules entry.</p>':'')+d.traits.map(t=>'<div class="species-trait"><strong>'+speciesEsc(t[0])+'</strong><span class="unlock">'+(Number.isFinite(t[1])?'Level '+t[1]+'+':'Level unverified')+'</span><p>'+speciesEsc(t[2])+'</p></div>').join('')+(d.choices.length?'<h4>Lineages, options and practical choices</h4>'+d.choices.map(t=>'<div class="species-trait"><strong>'+speciesEsc(t[0])+'</strong><p>'+speciesEsc(t[1])+'</p></div>').join(''):'')+(!core?'<p class="source-note">Supplement features are summarised in independent wording; uncommon exceptions and detailed choices may be condensed.</p>':'<p class="source-note">Original 2024 mechanical summary. Check specific rule interactions with your table’s 2024 wording.</p>')+'<div class="footlinks"><a href="'+speciesEsc(d.url)+'" target="_blank" rel="noopener">Published source information ↗</a></div>';
 }
 
 const speciesSourceSelect=$('speciesSource');
 [...new Set(SPECIES_2024.map(x=>x.source))].sort().forEach(src=>{const o=document.createElement('option');o.value=src;o.textContent=src;speciesSourceSelect.appendChild(o);});
-['speciesSearch','speciesSource','speciesEdition','speciesPublisher','speciesCoverage','speciesSort','speciesSize','speciesVision','speciesSpeed','speciesTrait','speciesUnlock','speciesChoices'].forEach(id=>$(id).addEventListener(id==='speciesSearch'?'input':'change',()=>{speciesLimit=36;renderSpecies();}));
+['speciesSearch','speciesSource','speciesEdition','speciesAdaptation','speciesPublisher','speciesCoverage','speciesSort','speciesSize','speciesVision','speciesSpeed','speciesTrait','speciesUnlock','speciesChoices'].forEach(id=>$(id).addEventListener(id==='speciesSearch'?'input':'change',()=>{speciesLimit=36;renderSpecies();}));
 $('speciesReset').onclick=()=>{speciesLimit=36;clearAdvanced('species',SPECIES_ADV_IDS,renderSpecies);};
 
 
